@@ -10,6 +10,7 @@
 
 @interface NSPredicate (Extra)
 
++ (NSArray*)simpleSubpredicatesFrom:(NSPredicate*)predicate;
 - (NSPredicate*)predicateByRemovingSubpredicate:(NSPredicate*)sub error:(NSError**)error;
 
 @end

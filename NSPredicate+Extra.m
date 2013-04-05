@@ -12,18 +12,51 @@
 
 - (NSPredicate *)predicateByRemovingSubpredicate:(NSPredicate *)sub error:(NSError *__autoreleasing *)error
 {
-    NSCompoundPredicate *pred = [self copy];
-    NSMutableArray *subs = [[pred subpredicates] mutableCopy];
-    if (subs.count > 1) {
-        NSCompoundPredicateType type = [pred compoundPredicateType];
-        if ([subs containsObject:sub]) {
-            [subs removeObject:sub];
-            NSCompoundPredicate *result = [[NSCompoundPredicate alloc] initWithType:type subpredicates:subs];
+    NSMutableArray *subpredicates = [[NSPredicate simpleSubpredicatesFrom:self] mutableCopy];
+    if ((subpredicates.count > 1) && [self isKindOfClass:[NSCompoundPredicate class]]) {
+        NSCompoundPredicateType type = [(NSCompoundPredicate*)self compoundPredicateType];
+        if ([subpredicates containsObject:sub]) {
+            [subpredicates removeObject:sub];
+            NSPredicate *result = [[NSCompoundPredicate alloc] initWithType:type subpredicates:subpredicates];
             return result;
         }
         else {
-            *error = [NSError errorWithDomain:@"Predicate doesn't contain given subpredicate" code:0 userInfo:nil];
+            *error = [NSError errorWithDomain:@"Predicate doesn't contains given subpredicate" code:0 userInfo:nil];
+            return self;
         }
+    }
+    else if (subpredicates.count == 1) {
+        if ([[[subpredicates objectAtIndex:0] predicateFormat] isEqualToString:sub.predicateFormat]) {
+            return nil;
+        }
+        else {
+            *error = [NSError errorWithDomain:@"Predicate doesn't contains given subpredicate" code:0 userInfo:nil];
+            return self;
+        }
+    }
+    else
+        return nil;
+}
+
++ (NSArray*)simpleSubpredicatesFrom:(NSPredicate*)predicate
+{
+    if ([predicate isKindOfClass:[NSCompoundPredicate class]]) {
+        NSCompoundPredicate *source = (NSCompoundPredicate*)predicate;
+        NSMutableArray *result = [NSMutableArray new];
+        if (source.subpredicates.count == 1) {
+            [result addObject:source];
+        }
+        else {
+            for (NSPredicate *pred in [source subpredicates]) {
+                if (![pred isKindOfClass:[NSCompoundPredicate class]]) {
+                    [result addObject:pred];
+                }
+                else {
+                    [result addObjectsFromArray:[self simpleSubpredicatesFrom:pred]];
+                }
+            }
+        }
+        return (NSArray*)result;
     }
     return nil;
 }
